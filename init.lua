@@ -603,14 +603,14 @@ require('lazy').setup({
       })
 
       -- Change diagnostic symbols in the sign column (gutter)
-      -- if vim.g.have_nerd_font then
-      --   local signs = { ERROR = '', WARN = '', INFO = '', HINT = '' }
-      --   local diagnostic_signs = {}
-      --   for type, icon in pairs(signs) do
-      --     diagnostic_signs[vim.diagnostic.severity[type]] = icon
-      --   end
-      --   vim.diagnostic.config { signs = { text = diagnostic_signs } }
-      -- end
+      if vim.g.have_nerd_font then
+        local signs = { ERROR = '', WARN = '', INFO = '', HINT = '' }
+        local diagnostic_signs = {}
+        for type, icon in pairs(signs) do
+          diagnostic_signs[vim.diagnostic.severity[type]] = icon
+        end
+        vim.diagnostic.config { signs = { text = diagnostic_signs } }
+      end
 
       -- LSP servers and clients are able to communicate to each other what features they support.
       --  By default, Neovim doesn't support everything that is in the LSP specification.
@@ -650,7 +650,9 @@ require('lazy').setup({
                   { 'VARIANTS \\=([^;]*);', '"([^"]*)"' },
                   { 'VARIANTS \\=([^;]*);', '\\`([^\\`]*)\\`' },
                   { 'cva\\(([^)]*)\\)', '["\'`]([^"\'`]*).*?["\'`]' },
+                  { 'tv\\(([^)]*)\\)', '["\'`]([^"\'`]*).*?["\'`]' },
                   { 'cx\\(([^)]*)\\)', "(?:'|\"|`)([^']*)(?:'|\"|`)" },
+                  { '(["\'`][^"\'`]*.*?["\'`])', '["\'`]([^"\'`]*).*?["\'`]' },
                 },
               },
             },
@@ -748,6 +750,7 @@ require('lazy').setup({
         javascript = { 'prettierd', 'prettier', stop_after_first = true },
         javascriptreact = { 'prettierd', 'prettier', stop_after_first = true },
         ocaml = { 'ocamlformat' },
+        php = { 'php-cs-fixer', 'pint', 'phpstan' },
       },
     },
   },
@@ -877,6 +880,26 @@ require('lazy').setup({
     end,
   },
   {
+    'datsfilipe/min-theme.nvim',
+    init = function()
+      require('min-theme').setup {
+        -- (note: if your configuration sets vim.o.background the following option will do nothing!)
+        transparent = true, -- Boolean: Sets the background to transparent
+        italics = {
+          comments = true, -- Boolean: Italicizes comments
+          keywords = true, -- Boolean: Italicizes keywords
+          functions = true, -- Boolean: Italicizes functions
+          strings = true, -- Boolean: Italicizes strings
+          variables = true, -- Boolean: Italicizes variables
+        },
+        overrides = {}, -- A dictionary of group names, can be a function returning a dictionary or a table.
+      }
+
+      -- vim.o.background = 'dark'
+      -- vim.cmd.colorscheme 'min-theme'
+    end,
+  },
+  {
     'projekt0n/github-nvim-theme',
     name = 'github-theme',
     lazy = false, -- make sure we load this during startup if it is your main colorscheme
@@ -893,8 +916,8 @@ require('lazy').setup({
     'ellisonleao/gruvbox.nvim',
     priority = 1000,
     init = function()
-      vim.o.background = 'light'
-      vim.cmd [[colorscheme gruvbox]]
+      -- vim.o.background = 'light'
+      -- vim.cmd [[colorscheme gruvbox]]
 
       require('gruvbox').setup {
         terminal_colors = true, -- add neovim terminal colors
@@ -973,12 +996,47 @@ require('lazy').setup({
     },
     config = function()
       require('nvim-tree').setup {
+        view = {
+          side = 'left',
+        },
         update_focused_file = {
           enable = true,
         },
       }
     end,
   },
+  {
+    'goolord/alpha-nvim',
+    -- dependencies = { 'echasnovski/mini.icons' },
+    dependencies = { 'nvim-tree/nvim-web-devicons' },
+    config = function()
+      local startify = require 'alpha.themes.startify'
+      -- available: devicons, mini, default is mini
+      -- if provider not loaded and enabled is true, it will try to use another provider
+      startify.file_icons.provider = 'devicons'
+      require('alpha').setup(startify.config)
+    end,
+  },
+  {
+    'datsfilipe/vesper.nvim',
+    config = function()
+      require('vesper').setup {
+        transparent = false, -- Boolean: Sets the background to transparent
+        italics = {
+          comments = true, -- Boolean: Italicizes comments
+          keywords = true, -- Boolean: Italicizes keywords
+          functions = true, -- Boolean: Italicizes functions
+          strings = true, -- Boolean: Italicizes strings
+          variables = true, -- Boolean: Italicizes variables
+        },
+        overrides = {}, -- A dictionary of group names, can be a function returning a dictionary or a table.
+        palette_overrides = {},
+      }
+
+      vim.cmd 'colorscheme vesper'
+    end,
+  },
+  { 'mbbill/undotree' },
   { 'github/copilot.vim' },
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
@@ -986,7 +1044,19 @@ require('lazy').setup({
     main = 'nvim-treesitter.configs', -- Sets main module to use for opts
     -- [[ Configure Treesitter ]] See `:help nvim-treesitter`
     opts = {
-      ensure_installed = { 'bash', 'c', 'diff', 'html', 'lua', 'luadoc', 'markdown', 'markdown_inline', 'query', 'vim', 'vimdoc' },
+      ensure_installed = {
+        'bash',
+        'c',
+        'diff',
+        'html',
+        'lua',
+        'luadoc',
+        'markdown',
+        'markdown_inline',
+        'query',
+        'vim',
+        'vimdoc',
+      },
       -- Autoinstall languages that are not installed
       auto_install = true,
       highlight = {
