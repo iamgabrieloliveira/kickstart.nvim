@@ -106,8 +106,11 @@ vim.opt.number = true
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.opt.mouse = 'a'
 
+vim.opt.tabstop = 4
+vim.opt.shiftwidth = 4
+
 vim.cmd [[
-	set nowrap
+  set nowrap
   set relativenumber
 ]]
 
@@ -400,6 +403,9 @@ require('lazy').setup({
         pickers = {
           colorscheme = {
             enable_preview = true,
+          },
+          find_files = {
+            hidden = true,
           },
         },
         extensions = {
@@ -988,24 +994,6 @@ require('lazy').setup({
   },
   { 'sindrets/diffview.nvim' },
   {
-    'nvim-tree/nvim-tree.lua',
-    version = '*',
-    lazy = false,
-    dependencies = {
-      'nvim-tree/nvim-web-devicons',
-    },
-    config = function()
-      require('nvim-tree').setup {
-        view = {
-          side = 'left',
-        },
-        update_focused_file = {
-          enable = true,
-        },
-      }
-    end,
-  },
-  {
     'goolord/alpha-nvim',
     -- dependencies = { 'echasnovski/mini.icons' },
     dependencies = { 'nvim-tree/nvim-web-devicons' },
@@ -1014,6 +1002,7 @@ require('lazy').setup({
       -- available: devicons, mini, default is mini
       -- if provider not loaded and enabled is true, it will try to use another provider
       startify.file_icons.provider = 'devicons'
+      startify.use_icons = false
       require('alpha').setup(startify.config)
     end,
   },
@@ -1038,6 +1027,91 @@ require('lazy').setup({
   },
   { 'mbbill/undotree' },
   { 'github/copilot.vim' },
+  { 'shortcuts/no-neck-pain.nvim' },
+  {
+    'numToStr/Comment.nvim',
+    opts = {},
+  },
+  {
+    'jose-elias-alvarez/nvim-lsp-ts-utils',
+    config = function()
+      local nvim_lsp = require 'lspconfig'
+      local ts_utils = require 'nvim-lsp-ts-utils'
+
+      nvim_lsp.ts_ls.setup {
+        on_attach = function(client, bufnr)
+          -- Make sure to call ts_utils setup after attaching the lsp server
+          ts_utils.setup {
+            debug = false,
+            disable_commands = false,
+            enable_import_on_completion = true,
+
+            -- import all
+            import_all_timeout = 5000, -- ms
+            -- lower numbers = higher priority
+            import_all_priorities = {
+              same_file = 1, -- add to existing import statement
+              local_files = 2, -- git files or files with relative path markers
+              buffer_content = 3, -- loaded buffer content
+              buffers = 4, -- loaded buffer names
+            },
+            import_all_scan_buffers = 100,
+            import_all_select_source = false,
+            -- if false will avoid organizing imports
+            always_organize_imports = true,
+
+            -- filter diagnostics
+            filter_out_diagnostics_by_severity = {},
+            filter_out_diagnostics_by_code = {},
+
+            -- inlay hints
+            auto_inlay_hints = true,
+            inlay_hints_highlight = 'Comment',
+            inlay_hints_priority = 200, -- priority of the hint extmarks
+            inlay_hints_throttle = 150, -- throttle the inlay hint request
+            inlay_hints_format = { -- format options for individual hint kind
+              Type = {},
+              Parameter = {},
+              Enum = {},
+              -- Example format customization for Type kind:
+              -- Type = {
+              --     highlight = "Comment",
+              --     text = function(text)
+              --         return "->" .. text:sub(2)
+              --     end,
+              -- },
+            },
+
+            -- update imports on file move
+            update_imports_on_move = false,
+            require_confirmation_on_move = false,
+            watch_dir = nil,
+          }
+
+          -- Optional: Bind custom keymaps
+          vim.api.nvim_buf_set_keymap(bufnr, 'n', 'gi', ':TSLspImportAll<CR>', { noremap = true, silent = true })
+        end,
+        filetypes = { 'typescript', 'typescriptreact', 'javascript', 'javascriptreact', 'typescript.tsx', 'typescript.jsx' },
+      }
+    end,
+  },
+  {
+    'stevearc/oil.nvim',
+    ---@module 'oil'
+    ---@type oil.SetupOpts
+    opts = {},
+    -- Optional dependencies
+    dependencies = { { 'echasnovski/mini.icons', opts = {} } },
+    -- dependencies = { "nvim-tree/nvim-web-devicons" }, -- use if you prefer nvim-web-devicons
+    -- Lazy loading is not recommended because it is very tricky to make it work correctly in all situations.
+    lazy = false,
+
+    config = function()
+      require('oil').setup()
+
+      vim.keymap.set('n', '-', '<cmd>Oil<CR>', { desc = 'Toggle [O]il' })
+    end,
+  },
   { -- Highlight, edit, and navigate code
     'nvim-treesitter/nvim-treesitter',
     build = ':TSUpdate',
@@ -1046,6 +1120,9 @@ require('lazy').setup({
     opts = {
       ensure_installed = {
         'bash',
+        'javascript',
+        'typescript',
+        'ocaml',
         'c',
         'diff',
         'html',
@@ -1064,7 +1141,7 @@ require('lazy').setup({
         -- Some languages depend on vim's regex highlighting system (such as Ruby) for indent rules.
         --  If you are experiencing weird indenting issues, add the language to
         --  the list of additional_vim_regex_highlighting and disabled languages for indent.
-        additional_vim_regex_highlighting = { 'ruby' },
+        additional_vim_regex_highlighting = { 'ruby', 'javascript' },
       },
       indent = { enable = true, disable = { 'ruby' } },
     },
