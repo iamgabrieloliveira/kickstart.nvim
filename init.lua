@@ -42,7 +42,7 @@ What is Kickstart?
 
 Kickstart Guide:
 
-  TODO: The very first thing you should do is to run the command `:Tutor` in Neovim.
+     TODO: The very first thing you should do is to run the command `:Tutor` in Neovim.
 
     If you don't know what this means, type the following:
       - <escape key>
@@ -77,8 +77,7 @@ Kickstart Guide:
 
 If you experience any errors while trying to install kickstart, run `:checkhealth` for more info.
 
-I hope you enjoy your Neovim journey,
-- TJ
+I hope you enjoy your Neovim journey, - TJ
 
 P.S. You can delete this when you're done too. It's your config now! :)
 --]]
@@ -90,7 +89,7 @@ vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
 
 -- Set to true if you have a Nerd Font installed and selected in the terminal
-vim.g.have_nerd_font = false
+vim.g.have_nerd_font = true
 
 -- [[ Setting options ]]
 -- See `:help vim.opt`
@@ -99,7 +98,7 @@ vim.g.have_nerd_font = false
 
 -- Make line numbers default
 vim.opt.number = true
--- You can also add relative line numbers, to help with jumping.
+vim.opt.number = true
 --  Experiment for yourself to see if you like it!
 -- vim.opt.relativenumber = true
 
@@ -394,10 +393,10 @@ require('lazy').setup({
       require('telescope').setup {
         -- You can put your default mappings / updates / etc. in here
         --  All the info you're looking for is in `:help telescope.setup()`
-        --
         defaults = {
           file_ignore_patterns = {
             'node_modules',
+            '.git',
           },
         },
         pickers = {
@@ -637,7 +636,13 @@ require('lazy').setup({
       local servers = {
         -- clangd = {},
         -- gopls = {},
-        -- pyright = {},
+        pyright = {
+          settings = {
+            python = {
+              pythonPath = 'python',
+            },
+          },
+        },
         -- rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
@@ -646,24 +651,6 @@ require('lazy').setup({
         --
         -- But for many setups, the LSP (`ts_ls`) will work just fine
         -- ts_ls = {},
-
-        tailwindcss = {
-          settings = {
-            tailwindCSS = {
-              experimental = {
-                classRegex = {
-                  { 'VARIANTS \\=([^;]*);', "'([^']*)'" },
-                  { 'VARIANTS \\=([^;]*);', '"([^"]*)"' },
-                  { 'VARIANTS \\=([^;]*);', '\\`([^\\`]*)\\`' },
-                  { 'cva\\(([^)]*)\\)', '["\'`]([^"\'`]*).*?["\'`]' },
-                  { 'tv\\(([^)]*)\\)', '["\'`]([^"\'`]*).*?["\'`]' },
-                  { 'cx\\(([^)]*)\\)', "(?:'|\"|`)([^']*)(?:'|\"|`)" },
-                  { '(["\'`][^"\'`]*.*?["\'`])', '["\'`]([^"\'`]*).*?["\'`]' },
-                },
-              },
-            },
-          },
-        },
 
         lua_ls = {
           -- cmd = { ... },
@@ -748,7 +735,7 @@ require('lazy').setup({
       formatters_by_ft = {
         lua = { 'stylua' },
         -- Conform can also run multiple formatters sequentially
-        -- python = { "isort", "black" },
+        python = { 'isort', 'black' },
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
         typescript = { 'prettierd', 'prettier', stop_after_first = true },
@@ -882,7 +869,7 @@ require('lazy').setup({
     priority = 1000,
     init = function()
       -- vim.o.background = 'light'
-      -- vim.cmd [[colorscheme catppuccin]]
+      vim.cmd [[colorscheme catppuccin]]
     end,
   },
   {
@@ -946,7 +933,7 @@ require('lazy').setup({
         contrast = 'soft', -- can be "hard", "soft" or empty string
         palette_overrides = {},
         overrides = {},
-        dim_inactive = false,
+        dim_inctive = false,
         transparent_mode = false,
       }
     end,
@@ -995,15 +982,14 @@ require('lazy').setup({
   { 'sindrets/diffview.nvim' },
   {
     'goolord/alpha-nvim',
-    -- dependencies = { 'echasnovski/mini.icons' },
-    dependencies = { 'nvim-tree/nvim-web-devicons' },
+    dependencies = {
+      'echasnovski/mini.icons',
+      'nvim-lua/plenary.nvim',
+    },
     config = function()
-      local startify = require 'alpha.themes.startify'
-      -- available: devicons, mini, default is mini
-      -- if provider not loaded and enabled is true, it will try to use another provider
-      startify.file_icons.provider = 'devicons'
-      startify.use_icons = false
-      require('alpha').setup(startify.config)
+      local theta = require 'alpha.themes.theta'
+
+      require('alpha').setup(theta.config)
     end,
   },
   {
@@ -1022,7 +1008,7 @@ require('lazy').setup({
         palette_overrides = {},
       }
 
-      vim.cmd 'colorscheme vesper'
+      -- vim.cmd 'colorscheme vesper'
     end,
   },
   { 'mbbill/undotree' },
@@ -1100,16 +1086,26 @@ require('lazy').setup({
     ---@module 'oil'
     ---@type oil.SetupOpts
     opts = {},
-    -- Optional dependencies
-    dependencies = { { 'echasnovski/mini.icons', opts = {} } },
-    -- dependencies = { "nvim-tree/nvim-web-devicons" }, -- use if you prefer nvim-web-devicons
-    -- Lazy loading is not recommended because it is very tricky to make it work correctly in all situations.
+    dependencies = { 'nvim-tree/nvim-web-devicons' }, -- use if you prefer nvim-web-devicons
     lazy = false,
 
     config = function()
-      require('oil').setup()
+      require('oil').setup {
+        view_options = {
+          show_hidden = true,
+        },
+      }
 
       vim.keymap.set('n', '-', '<cmd>Oil<CR>', { desc = 'Toggle [O]il' })
+    end,
+  },
+  {
+    'pmizio/typescript-tools.nvim',
+    dependencies = { 'nvim-lua/plenary.nvim', 'neovim/nvim-lspconfig' },
+    opts = {},
+
+    config = function()
+      vim.keymap.set('n', '<leader>ri', '<cmd>TSToolsAddMissingImports<CR>', { desc = 'Add Missing [I]mports' })
     end,
   },
   { -- Highlight, edit, and navigate code
