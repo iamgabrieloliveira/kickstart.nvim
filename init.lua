@@ -203,6 +203,14 @@ vim.keymap.set('n', '<space>e', function()
   vim.diagnostic.open_float()
 end, { desc = 'Open diagnostics' })
 
+vim.diagnostic.config {
+  virtual_text = true, -- Show errors as virtual text
+  signs = true, -- Show signs in the gutter
+  underline = true, -- Underline errors
+  update_in_insert = false, -- Don’t update diagnostics while typing
+  severity_sort = true, -- Prioritize errors
+}
+
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
 
@@ -215,6 +223,24 @@ vim.api.nvim_create_autocmd('TextYankPost', {
   callback = function()
     vim.highlight.on_yank()
   end,
+})
+
+vim.api.nvim_create_user_command('FormatDisable', function(args)
+  if args.bang then
+    -- FormatDisable! will disable formatting just for this buffer
+    vim.b.disable_autoformat = true
+  else
+    vim.g.disable_autoformat = true
+  end
+end, {
+  desc = 'Disable autoformat-on-save',
+  bang = true,
+})
+vim.api.nvim_create_user_command('FormatEnable', function()
+  vim.b.disable_autoformat = false
+  vim.g.disable_autoformat = false
+end, {
+  desc = 'Re-enable autoformat-on-save',
 })
 
 -- [[ Install `lazy.nvim` plugin manager ]]
@@ -541,7 +567,7 @@ require('lazy').setup({
           --  Useful when your language has ways of declaring types without an actual implementation.
           map('gI', require('telescope.builtin').lsp_implementations, '[G]oto [I]mplementation')
 
-          -- Jump to the type of the word under your cursor.
+          -- Jump to the type of the word under your , 'eslint-lsp'cursor.
           --  Useful when you're not sure what type a variable is and you want to see
           --  the definition of its *type*, not where it was *defined*.
           map('<leader>D', require('telescope.builtin').lsp_type_definitions, 'Type [D]efinition')
@@ -637,8 +663,9 @@ require('lazy').setup({
         -- clangd = {},
         -- gopls = {},
         pyright = {
-          before_init = function(params, config)
+          before_init = function(_, config)
             local python_path = vim.fn.system 'poetry run which python'
+
             config.settings.python.pythonPath = vim.trim(python_path)
           end,
         },
@@ -650,6 +677,23 @@ require('lazy').setup({
         --
         -- But for many setups, the LSP (`ts_ls`) will work just fine
         -- ts_ls = {},
+        tailwindcss = {
+          settings = {
+            tailwindCSS = {
+              experimental = {
+                classRegex = {
+                  { 'VARIANTS \\=([^;]*);', "'([^']*)'" },
+                  { 'VARIANTS \\=([^;]*);', '"([^"]*)"' },
+                  { 'VARIANTS \\=([^;]*);', '\\`([^\\`]*)\\`' },
+                  { 'cva\\(([^)]*)\\)', '["\'`]([^"\'`]*).*?["\'`]' },
+                  { 'tv\\(([^)]*)\\)', '["\'`]([^"\'`]*).*?["\'`]' },
+                  { 'cx\\(([^)]*)\\)', "(?:'|\"|`)([^']*)(?:'|\"|`)" },
+                  { '(["\'`][^"\'`]*.*?["\'`])', '["\'`]([^"\'`]*).*?["\'`]' },
+                },
+              },
+            },
+          },
+        },
 
         lua_ls = {
           -- cmd = { ... },
@@ -713,9 +757,12 @@ require('lazy').setup({
       },
     },
     opts = {
-      log_level = vim.log.levels.DEBUG,
-      notify_on_error = false,
+      notify_on_error = true,
       format_on_save = function(bufnr)
+        if vim.g.disable_autoformat or vim.b[bufnr].disable_autoformat then
+          return
+        end
+
         -- Disable "format_on_save lsp_fallback" for languages that don't
         -- have a well standardized coding style. You can add additional
         -- languages here or re-enable it for the disabled ones.
@@ -731,11 +778,16 @@ require('lazy').setup({
           lsp_format = lsp_format_opt,
         }
       end,
+      formatters = {
+        autopep8 = {
+          command = 'autopep8',
+          args = { '-', '--max-line-length=200' },
+        },
+      },
       formatters_by_ft = {
         lua = { 'stylua' },
-        -- Conform can also run multiple formatters sequentially
-        python = { 'isort', 'black' },
-        --
+        python = { 'autopep8' },
+        sql = { 'sleek' },
         -- You can use 'stop_after_first' to run the first available formatter from the list
         typescript = { 'prettierd', 'prettier', stop_after_first = true },
         typescriptreact = { 'prettierd', 'prettier', stop_after_first = true },
@@ -1012,7 +1064,30 @@ require('lazy').setup({
   },
   { 'mbbill/undotree' },
   { 'github/copilot.vim' },
-  { 'shortcuts/no-neck-pain.nvim' },
+  {
+    {
+      'CopilotC-Nvim/CopilotChat.nvim',
+      dependencies = {
+        { 'github/copilot.vim' }, -- or zbirenbaum/copilot.lua
+        { 'nvim-lua/plenary.nvim', branch = 'master' }, -- for curl, log and async functions
+      },
+      build = 'make tiktoken', -- Only on MacOS or Linux
+      opts = {
+        -- See Configuration section for options
+      },
+      -- See Commands section for default commands if you want to lazy load on them
+    },
+  },
+  {
+    'shortcuts/no-neck-pain.nvim',
+    config = function()
+      require('no-neck-pain').setup {
+        width = 130,
+      }
+
+      vim.keymap.set('n', '<leader>nn', '<cmd>NoNeckPain<CR>', { desc = '[N]o [N]eck Pain Mode' })
+    end,
+  },
   {
     'numToStr/Comment.nvim',
     opts = {},
@@ -1162,7 +1237,7 @@ require('lazy').setup({
   -- require 'kickstart.plugins.lint',
   -- require 'kickstart.plugins.autopairs',
   -- require 'kickstart.plugins.neo-tree',
-  -- require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
+  require 'kickstart.plugins.gitsigns', -- adds gitsigns recommend keymaps
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
   --    This is the easiest way to modularize your config.
